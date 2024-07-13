@@ -193,10 +193,10 @@ if page == pages[1]:
     for x in os.listdir("hCon_3D_Sample")
   ]
 
-  abnormal_scan_paths = [
-    os.path.join(os.getcwd(), "ADHD_3D_Sample", x)
-    for x in os.listdir("ADHD_3D_Sample")
-  ]
+  #abnormal_scan_paths = [
+  #  os.path.join(os.getcwd(), "ADHD_3D_Sample", x)
+  #  for x in os.listdir("ADHD_3D_Sample")
+  #]
 
   # Plot one slice
   st.write('Image Preprocessing included normalize and reslice ')
