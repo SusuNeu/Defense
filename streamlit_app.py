@@ -363,14 +363,25 @@ if page == pages[2]:
 
         x_test = process_scan(image_np)
         st.write("Classifying...")
+
+        # # Load best weights.
+        model.load_weights("3d_image_classification.keras")
+        prediction = model.predict(np.expand_dims(x_test, axis=0))[0]
+        scores = [1 - prediction[0], prediction[0]]
+        class_names = ["normal", "ADHD"]
+        for score, name in zip(scores, class_names):
+           st.write(
+              "This model is %.2f percent confident that the sMRI scan is %s"
+              % ((100 * score), name)
+              )
   
-  # Load best weights.
-  model.load_weights("3d_image_classification.keras")
-  prediction = model.predict(np.expand_dims(x_test, axis=0))[0]
-  scores = [1 - prediction[0], prediction[0]]
-  class_names = ["normal", "ADHD"]
-  for score, name in zip(scores, class_names):
-          st.write(
-            "This model is %.2f percent confident that the sMRI scan is %s"
-                % ((100 * score), name)
-                )
+  # # Load best weights.
+  # model.load_weights("3d_image_classification.keras")
+  # prediction = model.predict(np.expand_dims(x_test, axis=0))[0]
+  # scores = [1 - prediction[0], prediction[0]]
+  # class_names = ["normal", "ADHD"]
+  # for score, name in zip(scores, class_names):
+  #         st.write(
+  #           "This model is %.2f percent confident that the sMRI scan is %s"
+  #               % ((100 * score), name)
+  #               )
