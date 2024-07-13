@@ -314,7 +314,8 @@ if page == pages[2]:
 
   uploaded_file = st.file_uploader("Upload the sMRI Image via file path")
   if uploaded_file is not None:
-        bytes_data = str(uploaded_file.read().strip().decode('utf-8'))
+        # bytes_data = str(uploaded_file.read().strip().decode('utf-8'))
+        bytes_data = pd.read_csv(uploaded_file)
         st.write(bytes_data)
         x_test = process_scan(bytes_data)
         st.write("Classifying...")
