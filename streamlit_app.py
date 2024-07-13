@@ -352,34 +352,34 @@ if page == pages[2]:
                 f.write(bytes_data)
             if uploaded_file.name.endswith(('.nii', '.nii.gz')):
                 is_nifti = True
-        
+
         if is_nifti:
-            image_np = load_nifti_file(file_path, "nifti_image_data")
+              image_np = load_nifti_file(file_path, "nifti_image_data")
         else:
             image_np = load_and_store_dicom_series(temp_dir, "dicom_image_data")
 
-        axial_slice_num = st.slider(' ', 0, image_np.shape[2] - 1, 0, key="axial_slider")
-        fig = plot_slice(image_np[:, :, axial_slice_num], size=(3, 3), is_nifti=is_nifti)
-        st.pyplot(fig, clear_figure=True)
-        st.write(file_path)
-        x_test = process_scan(image_np)
-        st.write("Classifying...")
+    axial_slice_num = st.slider(' ', 0, image_np.shape[2] - 1, 0, key="axial_slider")
+    fig = plot_slice(image_np[:, :, axial_slice_num], size=(3, 3), is_nifti=is_nifti)
+    st.pyplot(fig, clear_figure=True)
+    st.write(file_path)
+    x_test = process_scan(image_np)
+    st.write("Classifying...")
 
-        # Load best weights.
-        #model.load_weights("3d_image_classification.keras")
-        prediction = model.predict(np.expand_dims(x_test, axis=0))[0]
-        scores = [1 - prediction[0], prediction[0]]
-        class_names = ["normal", "ADHD"]
-        for score, name in zip(scores, class_names):
+      # Load best weights.
+      #model.load_weights("3d_image_classification.keras")
+    prediction = model.predict(np.expand_dims(x_test, axis=0))[0]
+    scores = [1 - prediction[0], prediction[0]]
+    class_names = ["normal", "ADHD"]
+    for score, name in zip(scores, class_names):
            st.write(
               "This model is %.2f percent confident that the sMRI scan is %s"
               % ((100 * score), name)
               )
            
 
-  del uploaded_file
-  del image_np
-  del x_test
+  # del uploaded_file
+  # del image_np
+  # del x_test
   
   # # Load best weights.
   # model.load_weights("3d_image_classification.keras")
