@@ -338,7 +338,6 @@ if page == pages[2]:
   
   # Model Deploy
 
-  image_np = np.zeros(91,109,91)
   st.header("Model Deploy")
   st.write("Upload an sMRI Image for image classification as ADHD or normal")
 
