@@ -197,8 +197,7 @@ if page == pages[1]:
     # Plot one slice
   st.write('Image Preprocessing included normalize and reslice ')
   st.write('##### b4 preprocessing')
-  image_np = read_nifti_file(normal_scan_paths[0])
-  image = image_np
+  image = read_nifti_file(normal_scan_paths[0])
   st.write("image dimensions are:", image.shape)
   st.write('values are between', image.min(), 'and', round(image.max(), 2))
   st.image(np.squeeze(1/100*image[:, :, 45]),clamp=True) 
@@ -340,6 +339,8 @@ if page == pages[2]:
 
   st.header("Model Deploy")
   st.write("Upload an sMRI Image for image classification as ADHD or normal")
+
+  image_np =[]
 
 
   uploaded_files = st.file_uploader("Choose DICOM or NIfTI Files", accept_multiple_files=True, type=["dcm", "nii", "nii.gz"], key="file_uploader")
