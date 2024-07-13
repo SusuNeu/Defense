@@ -250,7 +250,7 @@ if page == pages[2]:
   
   # Build model
   model = get_model(width=128, height=128, depth=64)
-  model.load_weights("3d_image_classification.keras")
+  #model.load_weights("3d_image_classification.keras")
 
   # read nifti-file
   def load_nifti_file(filepath, session_key):
@@ -362,11 +362,11 @@ if page == pages[2]:
         fig = plot_slice(image_np[:, :, axial_slice_num], size=(3, 3), is_nifti=is_nifti)
         st.pyplot(fig, clear_figure=True)
 
-        x_test = process_scan(image_np)
-        st.write("Classifying...")
+    x_test = process_scan(image_np)
+    st.write("Classifying...")
 
-        # # Load best weights.
-        # model.load_weights("3d_image_classification.keras")
+    # Load best weights.
+    model.load_weights("3d_image_classification.keras")
     prediction = model.predict(np.expand_dims(x_test, axis=0))[0]
     scores = [1 - prediction[0], prediction[0]]
     class_names = ["normal", "ADHD"]
