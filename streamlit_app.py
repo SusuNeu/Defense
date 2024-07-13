@@ -327,8 +327,8 @@ if page == pages[2]:
   
   def process_scan(path):
     """Read and resize volume"""
-    # Read scan
-    volume = read_nifti_file(path)
+    ## Read scan
+    #volume = read_nifti_file(path)
     # Normalize
     volume = normalize(volume)
     # Resize width, height and depth
