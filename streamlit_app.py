@@ -340,9 +340,6 @@ if page == pages[2]:
   st.header("Model Deploy")
   st.write("Upload an sMRI Image for image classification as ADHD or normal")
 
-  image_np =[]
-
-
   uploaded_files = st.file_uploader("Choose DICOM or NIfTI Files", accept_multiple_files=True, type=["dcm", "nii", "nii.gz"], key="file_uploader")
   if uploaded_files:
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -359,13 +356,13 @@ if page == pages[2]:
             image_np = load_nifti_file(file_path, "nifti_image_data")
         else:
             image_np = load_and_store_dicom_series(temp_dir, "dicom_image_data")
-  
-  axial_slice_num = st.slider(' ', 0, image_np.shape[2] - 1, 0, key="axial_slider")
-  fig = plot_slice(image_np[:, :, axial_slice_num], size=(3, 3), is_nifti=is_nifti)
-  st.pyplot(fig, clear_figure=True)
-  
-  x_test = process_scan(image_np)
-  st.write("Classifying...")
+
+        axial_slice_num = st.slider(' ', 0, image_np.shape[2] - 1, 0, key="axial_slider")
+        fig = plot_slice(image_np[:, :, axial_slice_num], size=(3, 3), is_nifti=is_nifti)
+        st.pyplot(fig, clear_figure=True)
+
+        x_test = process_scan(image_np)
+        st.write("Classifying...")
   
   # Load best weights.
   model.load_weights("3d_image_classification.keras")
