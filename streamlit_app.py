@@ -325,7 +325,7 @@ if page == pages[2]:
     img = ndimage.zoom(img, (width_factor, height_factor, depth_factor), order=1)
     return img
   
-  def process_scan(path):
+  def process_scan(volume):
     """Read and resize volume"""
     ## Read scan
     #volume = read_nifti_file(path)
