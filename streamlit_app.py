@@ -377,6 +377,8 @@ if page == pages[2]:
               % ((100 * score), name)
               )
   del uploaded_file
+  del image_np
+  del x_test
   
   # # Load best weights.
   # model.load_weights("3d_image_classification.keras")
