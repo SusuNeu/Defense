@@ -361,16 +361,17 @@ if page == pages[2]:
         axial_slice_num = st.slider(' ', 0, image_np.shape[2] - 1, 0, key="axial_slider")
         fig = plot_slice(image_np[:, :, axial_slice_num], size=(3, 3), is_nifti=is_nifti)
         st.pyplot(fig, clear_figure=True)
+        st.write(file_path)
 
-    x_test = process_scan(image_np)
-    st.write("Classifying...")
+  x_test = process_scan(image_np)
+  st.write("Classifying...")
 
     # Load best weights.
-    model.load_weights("3d_image_classification.keras")
-    prediction = model.predict(np.expand_dims(x_test, axis=0))[0]
-    scores = [1 - prediction[0], prediction[0]]
-    class_names = ["normal", "ADHD"]
-    for score, name in zip(scores, class_names):
+  model.load_weights("3d_image_classification.keras")
+  prediction = model.predict(np.expand_dims(x_test, axis=0))[0]
+  scores = [1 - prediction[0], prediction[0]]
+  class_names = ["normal", "ADHD"]
+  for score, name in zip(scores, class_names):
            st.write(
               "This model is %.2f percent confident that the sMRI scan is %s"
               % ((100 * score), name)
