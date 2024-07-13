@@ -22,6 +22,9 @@ import nibabel as nib
 import random
 
 from scipy import ndimage, stats
+import SimpleITK as sitk
+import tempfile
+
 
 ### -----------------------------------------------------------
 ###                    Page Structure 
@@ -146,8 +149,6 @@ if page == pages[1]:
     volume = stats.zscore(volume, axis=None)
     minV = volume.min()
     maxV = volume.max()
-    # volume[volume < minV] = minV
-    # volume[volume > maxV] = maxV
     volume = (volume - minV) / (maxV - minV)
     volume = volume.astype("float32")
     return volume
@@ -193,12 +194,7 @@ if page == pages[1]:
     for x in os.listdir("hCon_3D_Sample")
   ]
 
-  #abnormal_scan_paths = [
-  #  os.path.join(os.getcwd(), "ADHD_3D_Sample", x)
-  #  for x in os.listdir("ADHD_3D_Sample")
-  #]
-
-  # Plot one slice
+    # Plot one slice
   st.write('Image Preprocessing included normalize and reslice ')
   st.write('##### b4 preprocessing')
   image = read_nifti_file(normal_scan_paths[0])
@@ -255,15 +251,46 @@ if page == pages[2]:
   # Build model
   model = get_model(width=128, height=128, depth=64)
 
-  # data preprocessing
-  def read_nifti_file(filepath):
-    """Read and load volume"""
-    # Read file
-    scan = nib.load(filepath)
-    # Get raw data
-    scan = scan.get_fdata()
-    return scan
+  # read nifti-file
+  def load_nifti_file(filepath, session_key):
+    if session_key not in st.session_state:
+        nifti_img = nib.load(filepath)
+        image_np = np.asanyarray(nifti_img.dataobj)
+        st.session_state[session_key] = image_np
+    return st.session_state[session_key]
   
+  def load_and_store_dicom_series(directory, session_key):
+    if session_key not in st.session_state:
+        reader = sitk.ImageSeriesReader()
+        dicom_names = reader.GetGDCMSeriesFileNames(directory)
+        reader.SetFileNames(dicom_names)
+        image_sitk = reader.Execute()
+        image_np = sitk.GetArrayFromImage(image_sitk)
+        st.session_state[session_key] = image_np
+    return st.session_state[session_key]
+  
+  def plot_slice(slice, size=(4, 4), is_nifti=False):
+    # Adjust the figure size for consistent viewer sizes
+    fig, ax = plt.subplots(figsize=size)
+    # Calculate the square canvas size
+    canvas_size = max(slice.shape)
+    canvas = np.full((canvas_size, canvas_size), fill_value=slice.min(), dtype=slice.dtype)
+    # Center the image within the canvas
+    x_offset = (canvas_size - slice.shape[0]) // 2
+    y_offset = (canvas_size - slice.shape[1]) // 2
+    canvas[x_offset:x_offset+slice.shape[0], y_offset:y_offset+slice.shape[1]] = slice
+    fig.patch.set_facecolor('black')  # Set the figure background to black
+    ax.set_facecolor('black')
+    if is_nifti:
+        canvas = np.rot90(canvas)
+    else:
+        canvas = canvas[::-1, ::-1]
+
+    ax.imshow(canvas, cmap='gray')
+    ax.axis('off')
+    return fig
+  
+  # data preprocessing
   def normalize(volume):
     """Normalize the volume"""
     volume = stats.zscore(volume, axis=None)
@@ -312,27 +339,38 @@ if page == pages[2]:
   st.header("Model Deploy")
   st.write("Upload an sMRI Image for image classification as ADHD or normal")
 
-  uploaded_file = st.file_uploader("Upload the sMRI Image via file path")
-  if uploaded_file is not None:
-        # bytes_data = str(uploaded_file.read().strip().decode('utf-8'))
-        bytes_data = pd.read_csv(uploaded_file)
-        st.write(bytes_data)
-        x_test = process_scan(bytes_data)
-        st.write("Classifying...")
 
-        # Load best weights.
-        model.load_weights("3d_image_classification.keras")
-        prediction = model.predict(np.expand_dims(x_test, axis=0))[0]
-        scores = [1 - prediction[0], prediction[0]]
-        class_names = ["normal", "ADHD"]
-        for score, name in zip(scores, class_names):
+  uploaded_files = st.file_uploader("Choose DICOM or NIfTI Files", accept_multiple_files=True, type=["dcm", "nii", "nii.gz"], key="file_uploader")
+  if uploaded_files:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        is_nifti = False
+        for uploaded_file in uploaded_files:
+            bytes_data = uploaded_file.read()
+            file_path = os.path.join(temp_dir, uploaded_file.name)
+            with open(file_path, 'wb') as f:
+                f.write(bytes_data)
+            if uploaded_file.name.endswith(('.nii', '.nii.gz')):
+                is_nifti = True
+        
+        if is_nifti:
+            image_np = load_nifti_file(file_path, "nifti_image_data")
+        else:
+            image_np = load_and_store_dicom_series(temp_dir, "dicom_image_data")
+  
+  axial_slice_num = st.slider(' ', 0, image_np.shape[2] - 1, 0, key="axial_slider")
+  fig = plot_slice(image_np[:, :, axial_slice_num], size=(3, 3), is_nifti=is_nifti)
+  st.pyplot(fig, clear_figure=True)
+  
+  x_test = process_scan(image_np)
+  st.write("Classifying...")
+  
+  # Load best weights.
+  model.load_weights("3d_image_classification.keras")
+  prediction = model.predict(np.expand_dims(x_test, axis=0))[0]
+  scores = [1 - prediction[0], prediction[0]]
+  class_names = ["normal", "ADHD"]
+  for score, name in zip(scores, class_names):
           st.write(
             "This model is %.2f percent confident that the sMRI scan is %s"
                 % ((100 * score), name)
                 )
-  
-
-
-
-
-  
