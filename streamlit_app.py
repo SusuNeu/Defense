@@ -362,6 +362,7 @@ if page == pages[2]:
     fig = plot_slice(image_np[:, :, axial_slice_num], size=(3, 3), is_nifti=is_nifti)
     st.pyplot(fig, clear_figure=True)
     st.write(file_path)
+    st.write(bytes_data)
     x_test = process_scan(image_np)
     st.write("Classifying...")
 
