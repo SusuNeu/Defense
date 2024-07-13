@@ -358,10 +358,10 @@ if page == pages[2]:
         else:
             image_np = load_and_store_dicom_series(temp_dir, "dicom_image_data")
 
-        axial_slice_num = st.slider(' ', 0, image_np.shape[2] - 1, 0, key="axial_slider")
-        fig = plot_slice(image_np[:, :, axial_slice_num], size=(3, 3), is_nifti=is_nifti)
-        st.pyplot(fig, clear_figure=True)
-        st.write(file_path)
+  axial_slice_num = st.slider(' ', 0, image_np.shape[2] - 1, 0, key="axial_slider")
+  fig = plot_slice(image_np[:, :, axial_slice_num], size=(3, 3), is_nifti=is_nifti)
+  st.pyplot(fig, clear_figure=True)
+  st.write(file_path)
 
   x_test = process_scan(image_np)
   st.write("Classifying...")
@@ -376,6 +376,7 @@ if page == pages[2]:
               "This model is %.2f percent confident that the sMRI scan is %s"
               % ((100 * score), name)
               )
+  del uploaded_file
   
   # # Load best weights.
   # model.load_weights("3d_image_classification.keras")
