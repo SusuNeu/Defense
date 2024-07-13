@@ -197,7 +197,8 @@ if page == pages[1]:
     # Plot one slice
   st.write('Image Preprocessing included normalize and reslice ')
   st.write('##### b4 preprocessing')
-  image = read_nifti_file(normal_scan_paths[0])
+  image_np = read_nifti_file(normal_scan_paths[0])
+  image = image_np
   st.write("image dimensions are:", image.shape)
   st.write('values are between', image.min(), 'and', round(image.max(), 2))
   st.image(np.squeeze(1/100*image[:, :, 45]),clamp=True) 
