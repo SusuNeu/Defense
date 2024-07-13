@@ -1,0 +1,243 @@
+import streamlit as st
+import nibabel as nib
+import numpy as np
+import SimpleITK as sitk
+import os
+import matplotlib.pyplot as plt
+import tempfile
+import streamlit as st
+
+# for numerical data
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from scipy.stats import ttest_ind
+from scipy import stats
+import scipy.stats
+
+# for sMRI data
+import os
+import zipfile
+import numpy as np
+import matplotlib.pyplot as plt
+import tensorflow as tf  
+
+import keras
+from keras import layers
+import nibabel as nib
+import random
+
+from scipy import ndimage, stats
+### -----------------------------------------------------------
+###                   Model Deploy 
+### -----------------------------------------------------------
+
+ 
+# Model Deploy
+
+def load_nifti_file(filepath, session_key):
+    if session_key not in st.session_state:
+        nifti_img = nib.load(filepath)
+        image_np = np.asanyarray(nifti_img.dataobj)
+        st.session_state[session_key] = image_np
+    return st.session_state[session_key]
+
+def load_and_store_dicom_series(directory, session_key):
+    if session_key not in st.session_state:
+        reader = sitk.ImageSeriesReader()
+        dicom_names = reader.GetGDCMSeriesFileNames(directory)
+        reader.SetFileNames(dicom_names)
+        image_sitk = reader.Execute()
+        image_np = sitk.GetArrayFromImage(image_sitk)
+        st.session_state[session_key] = image_np
+    return st.session_state[session_key]
+
+def plot_slice(slice, size=(4, 4), is_nifti=False):
+    # Adjust the figure size for consistent viewer sizes
+    fig, ax = plt.subplots(figsize=size)
+    # Calculate the square canvas size
+    canvas_size = max(slice.shape)
+    canvas = np.full((canvas_size, canvas_size), fill_value=slice.min(), dtype=slice.dtype)
+    # Center the image within the canvas
+    x_offset = (canvas_size - slice.shape[0]) // 2
+    y_offset = (canvas_size - slice.shape[1]) // 2
+    canvas[x_offset:x_offset+slice.shape[0], y_offset:y_offset+slice.shape[1]] = slice
+    fig.patch.set_facecolor('black')  # Set the figure background to black
+    ax.set_facecolor('black')
+    if is_nifti:
+        canvas = np.rot90(canvas)
+    else:
+        canvas = canvas[::-1, ::-1]
+
+    ax.imshow(canvas, cmap='gray')
+    ax.axis('off')
+    return fig
+
+st.header("Model Deploy")
+st.write("Upload an sMRI Image for image classification as ADHD or normal")
+
+
+
+uploaded_files = st.file_uploader("Choose DICOM or NIfTI Files", accept_multiple_files=True, type=["dcm", "nii", "nii.gz"], key="file_uploader")
+    
+if uploaded_files:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        is_nifti = False
+        for uploaded_file in uploaded_files:
+            bytes_data = uploaded_file.read()
+            file_path = os.path.join(temp_dir, uploaded_file.name)
+            with open(file_path, 'wb') as f:
+                f.write(bytes_data)
+            if uploaded_file.name.endswith(('.nii', '.nii.gz')):
+                is_nifti = True
+        
+        if is_nifti:
+            image_np = load_nifti_file(file_path, "nifti_image_data")
+        else:
+            image_np = load_and_store_dicom_series(temp_dir, "dicom_image_data")
+
+
+
+axial_slice_num = st.slider(' ', 0, image_np.shape[2] - 1, 0, key="axial_slider")
+fig = plot_slice(image_np[:, :, axial_slice_num], size=(3, 3), is_nifti=is_nifti)
+st.pyplot(fig, clear_figure=True)
+
+
+st.write(image_np.shape)
+
+
+def normalize(volume):
+    """Normalize the volume"""
+    volume = stats.zscore(volume, axis=None)
+    minV = volume.min()
+    maxV = volume.max()
+    # volume[volume < minV] = minV
+    # volume[volume > maxV] = maxV
+    volume = (volume - minV) / (maxV - minV)
+    volume = volume.astype("float32")
+    return volume
+  
+def resize_volume(img):
+    """Resize across z-axis"""
+    # Set the desired depth
+    desired_depth = 64
+    desired_width = 128
+    desired_height = 128
+    # Get current depth
+    current_depth = img.shape[-1]
+    current_width = img.shape[0]
+    current_height = img.shape[1]
+    # Compute depth factor
+    depth = current_depth / desired_depth
+    width = current_width / desired_width
+    height = current_height / desired_height
+    depth_factor = 1 / depth
+    width_factor = 1 / width
+    height_factor = 1 / height
+    # Rotate
+    img = ndimage.rotate(img, 90, reshape=False)
+    # Resize across z-axis
+    img = ndimage.zoom(img, (width_factor, height_factor, depth_factor), order=1)
+    return img
+  
+def process_scan(volume):
+    """Read and resize volume"""
+    # Read scan
+    # volume = read_nifti_file(path)
+    # Normalize
+    volume = normalize(volume)
+    # Resize width, height and depth
+    volume = resize_volume(volume)
+    return volume
+
+
+  # Model definition
+def get_model(width=128, height=128, depth=64):
+    """Build a 3D convolutional neural network model."""
+
+    inputs = keras.Input((width, height, depth, 1))
+
+    x = layers.Conv3D(filters=64, kernel_size=3, activation="relu")(inputs)
+    x = layers.MaxPool3D(pool_size=2)(x)
+    x = layers.BatchNormalization()(x)
+
+    x = layers.Conv3D(filters=64, kernel_size=3, activation="relu")(x)
+    x = layers.MaxPool3D(pool_size=2)(x)
+    x = layers.BatchNormalization()(x)
+
+    x = layers.Conv3D(filters=128, kernel_size=3, activation="relu")(x)
+    x = layers.MaxPool3D(pool_size=2)(x)
+    x = layers.BatchNormalization()(x)
+
+    x = layers.Conv3D(filters=256, kernel_size=3, activation="relu")(x)
+    x = layers.MaxPool3D(pool_size=2)(x)
+    x = layers.BatchNormalization()(x)
+
+    x = layers.GlobalAveragePooling3D()(x)
+    x = layers.Dense(units=512, activation="relu")(x)
+    x = layers.Dropout(0.3)(x)
+
+    outputs = layers.Dense(units=1, activation="sigmoid")(x)
+
+    # Define input and output of the model.
+    model = keras.Model(inputs, outputs, name="3dcnn")
+    return model 
+  
+  # Build model
+model = get_model(width=128, height=128, depth=64)
+
+
+
+x_test = process_scan(image_np)
+st.write("Classifying...")
+
+# Load best weights.
+model.load_weights("3d_image_classification.keras")
+prediction = model.predict(np.expand_dims(x_test, axis=0))[0]
+scores = [1 - prediction[0], prediction[0]]
+class_names = ["normal", "ADHD"]
+for score, name in zip(scores, class_names):
+          
+          st.write(
+            "This model is %.2f percent confident that the sMRI scan is %s"
+                % ((100 * score), name)
+                )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# uploaded_file = st.file_uploader("Upload the sMRI Image via file path")
+#   if uploaded_file is not None:
+#         bytes_data = str(uploaded_file.read().strip().decode('utf-8'))
+#         st.write(bytes_data)
+#         x_test = process_scan(bytes_data)
+#         st.write("Classifying...")
+
+#         # Load best weights.
+#         model.load_weights("3d_image_classification.keras")
+#         prediction = model.predict(np.expand_dims(x_test, axis=0))[0]
+#         scores = [1 - prediction[0], prediction[0]]
+#         class_names = ["normal", "ADHD"]
+#         for score, name in zip(scores, class_names):
+#           st.write(
+#             "This model is %.2f percent confident that the sMRI scan is %s"
+#                 % ((100 * score), name)
+#                 )
+  
+
+
+
+
+  
